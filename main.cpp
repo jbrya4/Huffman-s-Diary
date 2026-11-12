@@ -16,11 +16,17 @@ string promptUser(){
     getline(cin,userString);
     return userString;
 }
-
+void printFreqTable(unordered_map<char,int> freq);
 unordered_map<char,int> countFrequency(const string str){
     unordered_map<char, int> freq;
     for(char c: str){
         freq[c]++;   
+    }
+    char userInput;
+    cout << "Would like to see the frequency table? Type Y for yes, and N for no." << endl;
+    cin >> userInput;
+    if(userInput == 'Y' || userInput == 'y'){
+        printFreqTable(freq);
     }
     return freq;
 }
@@ -47,32 +53,11 @@ struct compare {
     }
 };
 
-//print Huffman Codes
-
-void printHCodes (Node* root, string str, unordered_map<char,string>&huffmanCode){
-    if (root == nullptr){
-        return;
-    }
-    //if this node has no children
-    if(!root->left && !root->right){
-        huffmanCode[root->ch] = str;
-    }
-
-    printHCodes(root->left, str + "0", huffmanCode);
-    printHCodes(root->right, str + "1", huffmanCode);
-
-}
-
-//build huffman tree and generate huffman codes
-void buildHuffmanTree(string userString, unordered_map<char,int> freq)
-{
-    //TODO: make into a separate function
-    // Create a priority queue to store live nodes of the
-    // Huffman tree
+priority_queue<Node*,vector<Node*>,compare> buildPriorityQueue(unordered_map<char,int> freq){
+    // Create a priority queue to store live nodes of the Huffman tree
     priority_queue<Node*, vector<Node*>, compare> pq;
 
-    // Create a leaf node for each character and add it to
-    // the priority queue
+    // Create a leaf node for each character and add it to the priority queue
     for (auto pair : freq) {
         pq.push(new Node(pair.first, pair.second));
     }
@@ -81,8 +66,7 @@ void buildHuffmanTree(string userString, unordered_map<char,int> freq)
 
     // Do till there is more than one node in the queue
     while (pq.size() != 1) {
-        // Remove the two nodes of highest priority (lowest
-        // frequency) from the queue
+        // Remove the two nodes of highest priority (lowest frequency) from the queue
         Node* left = pq.top();
         pq.pop();
         Node* right = pq.top();
@@ -94,37 +78,33 @@ void buildHuffmanTree(string userString, unordered_map<char,int> freq)
         int sum = left->freq + right->freq;
         pq.push(new Node('\0', sum, left, right));
     }
-    
-    //TODO: make into a separate function
-    // Root stores pointer to the root of the Huffman Tree
-    Node* root = pq.top();
+    return pq;
+}
 
-    // Traverse the Huffman Tree and store Huffman Codes in
-    // a map
-    unordered_map<char, string> huffmanCode;
-    printHCodes(root, "", huffmanCode);
+//print Huffman Codes
 
-    //TODO: make into a separate function
-    // Print Huffman Codes
+void buildHCodes (Node* root, string str, unordered_map<char,string>&huffmanCode){
+    if (root == nullptr){
+        return;
+    }
+    //if this node has no children
+    if(!root->left && !root->right){
+        huffmanCode[root->ch] = str;
+    }
+
+    buildHCodes(root->left, str + "0", huffmanCode);
+    buildHCodes(root->right, str + "1", huffmanCode);
+
+}
+
+void printHCodes(unordered_map<char, string> huffmanCode){
     cout << "Huffman Codes:\n";
     for (auto pair : huffmanCode) {
         cout << pair.first << " " << pair.second << "\n";
     }
+}
 
-    // Print original string
-    cout << "\nOriginal string:\n" << userString << "\n";
-    
-    //TODO: make into a separate function
-    // Print encoded string
-    string str = "";
-    for (char ch : userString) {
-        str += huffmanCode[ch];
-    }
-    cout << "\nEncoded string:\n" << str << "\n";
-
-    // Function to decode a given Huffman encoded string
-    //TODO: make into a separate function
-    auto decode = [&](string str) {
+void decode (string str, Node* root) {
         cout << "\nDecoded string:\n";
         Node* curr = root;
         for (char bit : str) {
@@ -144,12 +124,42 @@ void buildHuffmanTree(string userString, unordered_map<char,int> freq)
         cout << "\n";
     };
 
-    decode(str);
+//build huffman tree and generate huffman codes
+void buildHuffmanTree(string userString, unordered_map<char,int> freq)
+{
+    priority_queue<Node*,vector<Node*>,compare> pq = buildPriorityQueue(freq);
+    
+    //Root stores pointer to the root of the Huffman Tree
+    Node* root = pq.top();
+
+    // Traverse the Huffman Tree and store Huffman Codes in a map
+    //each character has a unique huffman code that corresponds to it
+    unordered_map<char, string> huffmanCodeMap;
+    buildHCodes(root, "", huffmanCodeMap);
+
+    char userInput;
+   
+    string str = "";
+    for (char ch : userString) {
+        str += huffmanCodeMap[ch];
+    }
+    cout << "Would you like to see the encoded string? Type Y for yes and N for no." << endl;
+    cin >> userInput;
+    if(userInput == 'Y' || userInput == 'y'){
+            cout << "\nEncoded string:\n" << str << "\n";        
+    }
+
+    //ask user if they'd like to decode the string
+    cout << "Would you like to decode the encoded string? Type Y for yes and N for no." << endl;
+    cin >> userInput;
+    if(userInput == 'Y' || userInput == 'y'){
+           decode(str, root);
+
+    }
 }
 
 int main (){
     string userString = promptUser();
     unordered_map<char,int> freqTable = countFrequency(userString);
-    printFreqTable(freqTable);
     buildHuffmanTree(userString, freqTable);
 }
